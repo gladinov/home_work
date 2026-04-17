@@ -12,55 +12,49 @@ func Unpack(in string) (string, error) {
 	builder := strings.Builder{}
 
 	runes := []rune(in)
-	letter := 0
-	num := 1
 
 	if len(runes) == 0 {
 		return "", nil
 	}
 
-	if _, ok := isNum(runes[0]); ok {
+	if _, ok := isChar(runes[0]); ok {
 		return "", ErrInvalidString
 	}
 
-	for num < len(runes) {
-		intValue, ok := isNum(runes[num])
-		if !ok {
-			if num-letter > 1 {
-				letter = num
-			} else {
-				str := string(runes[letter])
-				builder.WriteString(str)
-				letter++
-			}
-			num++
-			if letter == len(runes)-1 {
-				str := string(runes[letter])
-				builder.WriteString(str)
-			}
-		} else {
-			if num-letter > 1 {
+	for i := 1; i < len(runes); i++ {
+		curr := runes[i]
+		prev := runes[i-1]
+		char, ok := isChar(curr)
+		if ok {
+			if _, prevOk := isChar(prev); prevOk {
 				return "", ErrInvalidString
 			}
-			str := string(runes[letter])
-			for range intValue {
-				builder.WriteString(str)
+			str := strings.Repeat(string(prev), char)
+			builder.WriteString(str)
+			if i == len(runes)-1 {
+				break
 			}
-			num++
-
+		} else {
+			if _, prevOk := isChar(prev); prevOk {
+				if i == len(runes)-1 {
+					builder.WriteString(string(curr))
+				}
+				continue
+			}
+			builder.WriteString(string(prev))
+			if i == len(runes)-1 {
+				builder.WriteString(string(curr))
+			}
 		}
 	}
 	res := builder.String()
-
 	return res, nil
 }
 
-func isNum(in rune) (int, bool) {
-	str := string(in)
-
-	num, err := strconv.Atoi(str)
-	if err != nil {
-		return 0, false
+func isChar(in rune) (int, bool) {
+	if in >= '0' && in <= '9' {
+		char, _ := strconv.Atoi(string(in))
+		return char, true
 	}
-	return num, true
+	return 0, false
 }
