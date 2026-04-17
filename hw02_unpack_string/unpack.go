@@ -21,6 +21,11 @@ func Unpack(in string) (string, error) {
 		return "", ErrInvalidString
 	}
 
+	if len(runes) == 1 {
+		builder.WriteString(string(runes[0]))
+		return builder.String(), nil
+	}
+
 	for i := 1; i < len(runes); i++ {
 		curr := runes[i]
 		prev := runes[i-1]

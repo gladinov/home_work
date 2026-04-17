@@ -12,17 +12,19 @@ func TestUnpack(t *testing.T) {
 		input    string
 		expected string
 	}{
-		// {input: "a4bc2d5e", expected: "aaaabccddddde"},
-		// {input: "abccd", expected: "abccd"},
-		// {input: "", expected: ""},
-		// {input: "aaa0b", expected: "aab"},
-		// {input: "🙃0", expected: ""},
-		// {input: "🙃2ф4,1", expected: "🙃🙃фффф,"},
-		// {input: "!!!!!", expected: "!!!!!"},
-		// {input: "!5", expected: "!!!!!"},
+		{input: "a4bc2d5e", expected: "aaaabccddddde"},
+		{input: "abccd", expected: "abccd"},
+		{input: "", expected: ""},
+		{input: "aaa0b", expected: "aab"},
+		{input: "🙃0", expected: ""},
+		{input: "🙃2ф4,1", expected: "🙃🙃фффф,"},
+		{input: "!!!!!", expected: "!!!!!"},
+		{input: "!5", expected: "!!!!!"},
 		{input: "a", expected: "a"},
-
-		// {input: "aaф0b", expected: "aab"},
+		{input: "日本語", expected: "日本語"},
+		{input: "日2本3語1", expected: "日日本本本語"},
+		{input: "日0本0語0", expected: ""},
+		{input: "aaф0b", expected: "aab"},
 		// uncomment if task with asterisk completed
 		// {input: `qwe\4\5`, expected: `qwe45`},
 		// {input: `qwe\45`, expected: `qwe44444`},
@@ -33,8 +35,6 @@ func TestUnpack(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.input, func(t *testing.T) {
 			result, err := Unpack(tc.input)
-			t.Log("result:", result)
-			t.Log("expected", tc.expected)
 			require.NoError(t, err)
 			require.Equal(t, tc.expected, result)
 		})
@@ -42,18 +42,17 @@ func TestUnpack(t *testing.T) {
 }
 
 func TestUnpackInvalidString(t *testing.T) {
-	invalidStrings := []string{"3abc", "45", "aaa10b"}
+	invalidStrings := []string{"3abc", "45", "aaa10b", "1", "日2本3語12"}
 	// tc :=
 	for _, tc := range invalidStrings {
 		t.Run(tc, func(t *testing.T) {
-			res, err := Unpack(tc)
-			t.Log(res)
+			_, err := Unpack(tc)
 			require.Truef(t, errors.Is(err, ErrInvalidString), "actual error %q", err)
 		})
 	}
 }
 
-func Test_isNum(t *testing.T) {
+func Test_isDig(t *testing.T) {
 	tests := []struct {
 		name string // description of this test case
 		// Named input parameters for target function.
@@ -68,7 +67,6 @@ func Test_isNum(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, got2 := isDigit(tt.in)
-			// TODO: update the condition below to compare got with tt.want.
 			require.Equal(t, tt.want, got)
 			require.Equal(t, tt.want2, got2)
 		})
