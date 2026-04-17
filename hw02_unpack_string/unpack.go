@@ -17,44 +17,46 @@ func Unpack(in string) (string, error) {
 		return "", nil
 	}
 
-	if _, ok := isChar(runes[0]); ok {
+	if _, ok := isDigit(runes[0]); ok {
 		return "", ErrInvalidString
 	}
 
 	for i := 1; i < len(runes); i++ {
 		curr := runes[i]
 		prev := runes[i-1]
-		char, ok := isChar(curr)
+		dig, ok := isDigit(curr)
+		isLast := i == len(runes)-1
+		_, prevOk := isDigit(prev)
+
 		if ok {
-			if _, prevOk := isChar(prev); prevOk {
+			if prevOk {
 				return "", ErrInvalidString
 			}
-			str := strings.Repeat(string(prev), char)
+			str := strings.Repeat(string(prev), dig)
 			builder.WriteString(str)
-			if i == len(runes)-1 {
+			if isLast {
 				break
 			}
-		} else {
-			if _, prevOk := isChar(prev); prevOk {
-				if i == len(runes)-1 {
-					builder.WriteString(string(curr))
-				}
-				continue
-			}
-			builder.WriteString(string(prev))
-			if i == len(runes)-1 {
+			continue
+		}
+		if prevOk {
+			if isLast {
 				builder.WriteString(string(curr))
 			}
+			continue
+		}
+		builder.WriteString(string(prev))
+		if isLast {
+			builder.WriteString(string(curr))
 		}
 	}
-	res := builder.String()
-	return res, nil
+	return builder.String(), nil
 }
 
-func isChar(in rune) (int, bool) {
+func isDigit(in rune) (int, bool) {
 	if in >= '0' && in <= '9' {
-		char, _ := strconv.Atoi(string(in))
-		return char, true
+		dig, _ := strconv.Atoi(string(in))
+		return dig, true
 	}
 	return 0, false
 }
