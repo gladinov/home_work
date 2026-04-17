@@ -42,7 +42,13 @@ func TestUnpack(t *testing.T) {
 }
 
 func TestUnpackInvalidString(t *testing.T) {
-	invalidStrings := []string{"3abc", "45", "aaa10b", "1", "日2本3語12"}
+	invalidStrings := []string{
+		"3abc",
+		"45",
+		"aaa10b",
+		"1",
+		"日2本3語12",
+	}
 	// tc :=
 	for _, tc := range invalidStrings {
 		t.Run(tc, func(t *testing.T) {
@@ -69,6 +75,25 @@ func Test_isDig(t *testing.T) {
 			got, got2 := isDigit(tt.in)
 			require.Equal(t, tt.want, got)
 			require.Equal(t, tt.want2, got2)
+		})
+	}
+}
+
+func Test_isBackslash(t *testing.T) {
+	tests := []struct {
+		name string // description of this test case
+		// Named input parameters for target function.
+		in   rune
+		want bool
+	}{
+		{"success", 92, true},
+		{"false", 97, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Log(string(tt.in))
+			got := isBackslash(tt.in)
+			require.Equal(t, tt.want, got)
 		})
 	}
 }
