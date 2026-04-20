@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-const backslash = 92
+const backslash rune = '\\'
 
 var ErrInvalidString = errors.New("invalid string")
 
@@ -20,6 +20,11 @@ func (c *escapedChar) isEscaped(prev int) bool {
 		return true
 	}
 	return false
+}
+
+func (c *escapedChar) Set(i int) {
+	c.pos = i
+	c.set = true
 }
 
 func Unpack(in string) (string, error) {
@@ -39,78 +44,157 @@ func Unpack(in string) (string, error) {
 		builder.WriteString(string(runes[0]))
 		return builder.String(), nil
 	}
-	escapedChar := escapedChar{
+	esc := escapedChar{
 		set: false,
 		pos: 0,
 	}
-
+loop:
 	for i := 1; i < len(runes); i++ {
 		curr := runes[i]
-		prev := runes[i-1]
-		isLast := i == len(runes)-1
-		dig, currDigOk := isDigit(curr)
-		_, prevDigOk := isDigit(prev)
+		_, currDigOk := isDigit(curr)
 
-		if currDigOk {
-			if prevDigOk {
-				if escapedChar.isEscaped(i - 1) {
-					str := strings.Repeat(string(prev), dig)
-					builder.WriteString(str)
-					continue
-				}
-				return "", ErrInvalidString
+		switch {
+		// Обрабатываем числа
+		case currDigOk:
+			isContinue, err := handleDig(runes, i, &esc, &builder)
+			if err != nil {
+				return "", err
 			}
-			if isBackslash(prev) {
-				if escapedChar.isEscaped(i - 1) {
-					str := strings.Repeat(string(prev), dig)
-					builder.WriteString(str)
-					continue
-				}
-			}
-			str := strings.Repeat(string(prev), dig)
-			builder.WriteString(str)
-			if isLast {
-				break
-			}
-			continue
-		}
-
-		if isBackslash(curr) {
-			// Если предыдущий элемент был
-			if isBackslash(prev) {
-				builder.WriteString(string(curr))
-			}
-			continue
-		}
-		if !currDigOk {
-			if isBackslash(prev) {
-				if escapedChar.isEscaped(i - 1) {
-					builder.WriteString(string(prev))
-				} else {
-					return "", ErrInvalidString
-				}
-
+			if isContinue {
 				continue
 			}
-			if prevDigOk {
-				if isLast {
-					builder.WriteString(string(curr))
-				}
-				continue
+			break loop
+			// если текущий элемент бэкслеш
+		case isBackslash(curr):
+			err := handleBackslash(runes, i, &esc, &builder)
+			if err != nil {
+				return "", err
 			}
-			builder.WriteString(string(prev))
-			if isLast {
-				builder.WriteString(string(curr))
+			continue
+			// Если элемент не число и не бэкслеш
+		default:
+			err := handleOther(runes, i, &esc, &builder)
+			if err != nil {
+				return "", err
 			}
+			continue
 		}
 	}
 	return builder.String(), nil
 }
 
-func hanldeDig() {}
-func handleBackslash() {
+func handleDig(runes []rune, i int, esc *escapedChar, builder *strings.Builder) (bool, error) {
+	curr := runes[i]
+	prev := runes[i-1]
+	isLast := i == len(runes)-1
+	dig, _ := isDigit(curr)
+	_, prevDigOk := isDigit(prev)
+
+	// Если предыдущий жлемент число
+	if prevDigOk {
+		// Если предыдущее число экранировано
+		if esc.isEscaped(i - 1) {
+			str := strings.Repeat(string(prev), dig)
+			builder.WriteString(str)
+			return true, nil
+		}
+		return false, ErrInvalidString
+	}
+	if isBackslash(prev) {
+		// Если предыдущий элемент бэкслэш
+		if esc.isEscaped(i - 1) {
+			// если бэкслэш экранирован
+			str := strings.Repeat(string(prev), dig)
+			builder.WriteString(str)
+			return true, nil
+		}
+		if isLast {
+			builder.WriteString(string(curr))
+			return false, nil
+		}
+
+		// Если предыдущий жлемент не экранирован
+		// То он экранирует число
+		esc.Set(i)
+		return true, nil
+	}
+	// Если предыдущий элемент не число и не бэкслэш
+	str := strings.Repeat(string(prev), dig)
+	builder.WriteString(str)
+	if isLast {
+		return false, nil
+	}
+	return true, nil
 }
-func handleOther() {}
+
+func handleBackslash(runes []rune, i int, esc *escapedChar, builder *strings.Builder) error {
+	prev := runes[i-1]
+	isLast := i == len(runes)-1
+	_, prevDigOk := isDigit(prev)
+
+	// Если текущий индекс последний
+	if isLast {
+		// Возвращаем ошибку
+		return ErrInvalidString
+	}
+	// Если предудущий элемент экранирован
+	if esc.isEscaped(i - 1) {
+		str := string(prev)
+		builder.WriteString(str)
+		return nil
+	}
+	// Если предыдущий элемент бэкслэш
+	if isBackslash(prev) {
+		// То экранируем бекслеш
+		esc.Set(i)
+		return nil
+	}
+
+	if prevDigOk {
+		return nil
+	}
+	// Если предыдущий элемент не число и не бекслэш
+	str := string(prev)
+	builder.WriteString(str)
+
+	return nil
+}
+
+func handleOther(runes []rune, i int, esc *escapedChar, builder *strings.Builder) error {
+	curr := runes[i]
+	prev := runes[i-1]
+	isLast := i == len(runes)-1
+	_, prevDigOk := isDigit(prev)
+
+	// Если предудущий элемент экранирован
+	if esc.isEscaped(i - 1) {
+		str := string(prev)
+		builder.WriteString(str)
+		if isLast {
+			builder.WriteString(string(curr))
+		}
+		return nil
+	}
+	// Если предыдущий не экранированный бекслеш
+	if isBackslash(prev) {
+		return ErrInvalidString
+	}
+	// Если пердыдущий число
+	if prevDigOk {
+		// Если последний элемент , то добавляем
+		if isLast {
+			builder.WriteString(string(curr))
+		}
+		return nil
+	}
+	// Если предыдущий не число и не бекслеш, то записываем
+	builder.WriteString(string(prev))
+	//
+	if isLast {
+		builder.WriteString(string(curr))
+	}
+	return nil
+}
 
 func isDigit(in rune) (int, bool) {
 	if in >= '0' && in <= '9' {
@@ -121,8 +205,5 @@ func isDigit(in rune) (int, bool) {
 }
 
 func isBackslash(in rune) bool {
-	if in == backslash {
-		return true
-	}
-	return false
+	return in == backslash
 }

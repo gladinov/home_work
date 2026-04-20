@@ -25,16 +25,22 @@ func TestUnpack(t *testing.T) {
 		{input: "日2本3語1", expected: "日日本本本語"},
 		{input: "日0本0語0", expected: ""},
 		{input: "aaф0b", expected: "aab"},
-		// uncomment if task with asterisk completed
-		// {input: `qwe\4\5`, expected: `qwe45`},
-		// {input: `qwe\45`, expected: `qwe44444`},
-		// {input: `qwe\\5`, expected: `qwe\\\\\`},
-		// {input: `qwe\\\3`, expected: `qwe\3`},
+		// // uncomment if task with asterisk completed
+		{input: `qwe\4\5`, expected: `qwe45`},
+		{input: `qwe\45`, expected: `qwe44444`},
+		{input: `qwe\\5`, expected: `qwe\\\\\`},
+		{input: `qwe\\\3`, expected: `qwe\3`},
+		{input: `qwe\2e`, expected: `qwe2e`},
+		{input: `a4q`, expected: `aaaaq`},
+		{input: `aaq`, expected: `aaq`},
+		{input: `aa1\1`, expected: `aa1`},
+		{input: `\1\2\3\4`, expected: `1234`},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.input, func(t *testing.T) {
 			result, err := Unpack(tc.input)
+			t.Log(result, err)
 			require.NoError(t, err)
 			require.Equal(t, tc.expected, result)
 		})
@@ -48,6 +54,8 @@ func TestUnpackInvalidString(t *testing.T) {
 		"aaa10b",
 		"1",
 		"日2本3語12",
+		`qwe\\\3\`,
+		`q\q`,
 	}
 	// tc :=
 	for _, tc := range invalidStrings {
