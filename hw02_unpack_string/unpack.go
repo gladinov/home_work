@@ -127,7 +127,11 @@ func handleDig(runes []rune, i int, esc *escapedChar, builder *strings.Builder) 
 	return true, nil
 }
 
-func handleBackslash(runes []rune, i int, esc *escapedChar, builder *strings.Builder) error {
+func handleBackslash(runes []rune,
+	i int,
+	esc *escapedChar,
+	builder *strings.Builder,
+) error {
 	prev := runes[i-1]
 	isLast := i == len(runes)-1
 	_, prevDigOk := isDigit(prev)
