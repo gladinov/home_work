@@ -6,23 +6,18 @@ import (
 	"unicode"
 )
 
-func wordCount(strList []string) (map[string]int, error) {
-	if len(strList) == 0 {
-		return nil, ErrStrListIsEmpty
-	}
+func wordCount(strList []string) map[string]int {
 	countOfWords := make(map[string]int)
 	var processedWord string
 	for _, word := range strList {
-
 		var err error
 		processedWord, err = processWord(word)
 		if err != nil {
 			continue
 		}
 		countOfWords[processedWord]++
-
 	}
-	return countOfWords, nil
+	return countOfWords
 }
 
 func createWordList(countOfWords map[string]int) (map[int][]string, []int) {

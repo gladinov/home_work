@@ -6,9 +6,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// Change to true if needed.
-var taskWithAsteriskIsCompleted = true
-
 var text = `Как видите, он  спускается  по  лестнице  вслед  за  своим
 	другом   Кристофером   Робином,   головой   вниз,  пересчитывая
 	ступеньки собственным затылком:  бум-бум-бум.  Другого  способа
@@ -62,13 +59,7 @@ func TestTop10(t *testing.T) {
 	})
 
 	t.Run("short text", func(t *testing.T) {
-		var want []string
-		if taskWithAsteriskIsCompleted {
-			want = []string{"он", "бум-бум-бум", "видите", "вниз", "вслед", "головой", "другого", "другом", "за", "затылком"}
-		} else {
-			want = []string{"он", "Другого", "Как", "Кристофером", "Робином,", "бум-бум-бум.", "видите,", "вниз,", "вслед", "головой"}
-		}
-
+		want := []string{"он", "бум-бум-бум", "видите", "вниз", "вслед", "головой", "другого", "другом", "за", "затылком"}
 		res := Top10(`
 		Как видите, он  спускается  по  лестнице  вслед  за  своим
 	другом   Кристофером   Робином,   головой   вниз,  пересчитывая
@@ -78,12 +69,7 @@ func TestTop10(t *testing.T) {
 	})
 
 	t.Run("line break", func(t *testing.T) {
-		var want []string
-		if taskWithAsteriskIsCompleted {
-			want = []string{"как", "олег"}
-		} else {
-			want = []string{"Как", "олег"}
-		}
+		want := []string{"как", "олег"}
 		res := Top10(`
 		Как
 		олег`)
@@ -100,24 +86,16 @@ func TestTop10(t *testing.T) {
 
 	// * Слово с большой и маленькой буквы считать за разные слова. "Нога" и "нога" - это разные слова.
 	t.Run("Big legs", func(t *testing.T) {
-		if !taskWithAsteriskIsCompleted {
-			want := []string{"Нога", "нога", "ноги", "ногу"}
-			res := Top10(`
+		want := []string{"нога", "ноги", "ногу"}
+		res := Top10(`
 		ногу Нога ноги  нога`)
-			require.Equal(t, want, res)
-		}
+		require.Equal(t, want, res)
 	})
 
 	// * Знаки препинания считать "буквами" слова или отдельными словами.
 	// "-" (тире) - это отдельное слово. "нога," и "нога" - это разные слова.
 	t.Run("Punctuation marks", func(t *testing.T) {
-		var want []string
-		if taskWithAsteriskIsCompleted {
-			want = []string{"нога"}
-		} else {
-			want = []string{"нога", "нога,", "нога-"}
-		}
-
+		want := []string{"нога"}
 		res := Top10(`
 		нога, нога нога-`)
 		require.Equal(t, want, res)
@@ -140,34 +118,18 @@ func TestTop10(t *testing.T) {
 	})
 
 	t.Run("positive test", func(t *testing.T) {
-		if taskWithAsteriskIsCompleted {
-			expected := []string{
-				"а",         // 8
-				"он",        // 8
-				"и",         // 6
-				"ты",        // 5
-				"что",       // 5
-				"в",         // 4
-				"его",       // 4
-				"если",      // 4
-				"кристофер", // 4
-				"не",        // 4
-			}
-			require.Equal(t, expected, Top10(text))
-		} else {
-			expected := []string{
-				"он",        // 8
-				"а",         // 6
-				"и",         // 6
-				"ты",        // 5
-				"что",       // 5
-				"-",         // 4
-				"Кристофер", // 4
-				"если",      // 4
-				"не",        // 4
-				"то",        // 4
-			}
-			require.Equal(t, expected, Top10(text))
+		expected := []string{
+			"а",         // 8
+			"он",        // 8
+			"и",         // 6
+			"ты",        // 5
+			"что",       // 5
+			"в",         // 4
+			"его",       // 4
+			"если",      // 4
+			"кристофер", // 4
+			"не",        // 4
 		}
+		require.Equal(t, expected, Top10(text))
 	})
 }

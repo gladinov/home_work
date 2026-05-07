@@ -9,11 +9,7 @@ func Top10(text string) []string {
 	// Пробельные симоволы это unicode.IsSpace
 	strList := strings.Fields(text)
 
-	countOfWords, err := wordCount(strList)
-	if err != nil {
-		return []string{}
-	}
-
+	countOfWords := wordCount(strList)
 	if len(countOfWords) == 0 {
 		return []string{}
 	}

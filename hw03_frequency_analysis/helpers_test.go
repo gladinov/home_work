@@ -95,7 +95,11 @@ func Test_processWord(t *testing.T) {
 		{"-,-", "", ErrEmptyWordAfterTrim},
 		{"-олег-", "олег", nil},
 		{"!--!", "--", nil},
-		{"!-!", "--", ErrEmptyWordAfterTrim},
+		{"-------,", "-------", nil},
+		{"'-------'", "-------", nil},
+		{`"-------"`, "-------", nil},
+		{"---!", "---", nil},
+		{"!-!", "", ErrEmptyWordAfterTrim},
 	}
 	for _, tt := range tests {
 		t.Run(tt.word, func(t *testing.T) {
@@ -200,41 +204,31 @@ func Test_wordCount(t *testing.T) {
 		// Named input parameters for target function.
 		strList []string
 		want    map[string]int
-		err     error
 	}{
 		{
 			name:    "empty",
 			strList: []string{},
-			want:    nil,
-			err:     ErrStrListIsEmpty,
+			want:    map[string]int{},
 		},
 		{
 			name:    "single word",
 			strList: []string{"success"},
 			want:    map[string]int{"success": 1},
-			err:     nil,
 		},
 		{
 			name:    "repeated words",
 			strList: []string{"a", "b", "a", "c", "b", "a"},
 			want:    map[string]int{"a": 3, "b": 2, "c": 1},
-			err:     nil,
 		},
 		{
 			name:    "words with punctuation inside",
 			strList: []string{"dog,cat", "dog...cat", "dog,cat", "--"},
 			want:    map[string]int{"dog,cat": 2, "dog...cat": 1, "--": 1},
-			err:     nil,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, gotErr := wordCount(tt.strList)
-			if tt.err != nil {
-				require.ErrorIs(t, gotErr, tt.err)
-				return
-			}
-			require.NoError(t, gotErr)
+			got := wordCount(tt.strList)
 			require.Equal(t, tt.want, got)
 		})
 	}
