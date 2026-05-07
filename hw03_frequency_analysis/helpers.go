@@ -20,9 +20,8 @@ func wordCount(strList []string) map[string]int {
 	return countOfWords
 }
 
-func createWordList(countOfWords map[string]int) (map[int][]string, []int) {
-	var frequency []int
-	wordList := make(map[int][]string, 0)
+func createWordList(countOfWords map[string]int) (wordList map[int][]string, frequency []int) {
+	wordList = make(map[int][]string, 0)
 	for key, value := range countOfWords {
 		if _, ok := wordList[value]; !ok {
 			wordList[value] = []string{}
