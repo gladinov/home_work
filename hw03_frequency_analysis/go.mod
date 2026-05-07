@@ -1,6 +1,6 @@
 module github.com/gladinov/home_work/hw03_frequency_analysis
 
-go 1.24.11
+go 1.23
 
 require github.com/stretchr/testify v1.7.0
 
