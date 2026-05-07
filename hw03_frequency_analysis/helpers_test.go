@@ -52,16 +52,22 @@ func Test_isMultDash(t *testing.T) {
 		name string
 		word string
 		want bool
+		err  error
 	}{
-		{"singleDash", "-", false},
-		{"firstNotDash", "1-", false},
-		{"secondNotDash", "-1", false},
-		{"twoDash", "--", true},
-		{"threeDash", "---", true},
+		{"singleDash", "-", false, nil},
+		{"firstNotDash", "1-", false, nil},
+		{"secondNotDash", "-1", false, nil},
+		{"twoDash", "--", true, nil},
+		{"threeDash", "---", true, nil},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := isMultDash(tt.word)
+			got, gotErr := isMultDash(tt.word)
+			if tt.err != nil {
+				require.ErrorIs(t, gotErr, tt.err)
+				return
+			}
+			require.NoError(t, gotErr)
 			require.Equal(t, tt.want, got)
 		})
 	}
@@ -69,27 +75,33 @@ func Test_isMultDash(t *testing.T) {
 
 func Test_processWord(t *testing.T) {
 	tests := []struct {
-		word    string
-		want    string
-		wantErr bool
+		word string
+		want string
+		err  error
 	}{
-		{"-", "", true},
-		{"---", "---", false},
-		{"Нога", "нога", false},
-		{"!Нога", "нога", false},
-		{"-Нога-", "нога", false},
-		{"-нога-", "нога", false},
-		{"какой-то", "какой-то", false},
-		{"какойто", "какойто", false},
-		{"dog,cat", "dog,cat", false},
-		{"dog...cat", "dog...cat", false},
-		{"dogcat", "dogcat", false},
+		{"-", "", ErrSingleDashIsNotWord},
+		{"---", "---", nil},
+		{"Нога", "нога", nil},
+		{"!Нога", "нога", nil},
+		{"-Нога-", "нога", nil},
+		{"-нога-", "нога", nil},
+		{"какой-то", "какой-то", nil},
+		{"какойто", "какойто", nil},
+		{"dog,cat", "dog,cat", nil},
+		{"dog...cat", "dog...cat", nil},
+		{"dogcat", "dogcat", nil},
+		{"!!!", "", ErrEmptyWordAfterTrim},
+		{"", "", ErrWordIsEmpty},
+		{"-,-", "", ErrEmptyWordAfterTrim},
+		{"-олег-", "олег", nil},
+		{"!--!", "--", nil},
+		{"!-!", "--", ErrEmptyWordAfterTrim},
 	}
 	for _, tt := range tests {
 		t.Run(tt.word, func(t *testing.T) {
 			got, gotErr := processWord(tt.word)
-			if tt.wantErr {
-				require.Error(t, gotErr)
+			if tt.err != nil {
+				require.ErrorIs(t, gotErr, tt.err)
 				return
 			}
 			require.NoError(t, gotErr)
@@ -102,21 +114,21 @@ func Test_getRes(t *testing.T) {
 	tests := []struct {
 		name string // description of this test case
 		// Named input parameters for target function.
-		wordList map[int][]string
-		maxValue int
-		want     []string
+		wordList  map[int][]string
+		frequency []int
+		want      []string
 	}{
 		{
-			name:     "succes",
-			wordList: map[int][]string{7: {"a", "b"}},
-			maxValue: 7,
-			want:     []string{"a", "b"},
+			name:      "succes",
+			wordList:  map[int][]string{7: {"a", "b"}},
+			frequency: []int{7},
+			want:      []string{"a", "b"},
 		},
 		{
-			name:     "zero max value",
-			wordList: map[int][]string{},
-			maxValue: 0,
-			want:     []string{},
+			name:      "zero max value",
+			wordList:  map[int][]string{},
+			frequency: []int{},
+			want:      []string{},
 		},
 		{
 			name: "more than 10",
@@ -126,13 +138,13 @@ func Test_getRes(t *testing.T) {
 				2:  {"f", "g", "l"},
 				11: {"r", "q", "p"},
 			},
-			maxValue: 0,
-			want:     []string{},
+			frequency: []int{11, 8, 7, 2},
+			want:      []string{"r", "q", "p", "c", "d", "e", "a", "b", "f", "g"},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := getRes(tt.wordList, tt.maxValue)
+			got := getRes(tt.wordList, tt.frequency)
 			require.Equal(t, tt.want, got)
 		})
 	}
@@ -143,19 +155,19 @@ func Test_createWordList(t *testing.T) {
 		name         string
 		countOfWords map[string]int
 		want         map[int][]string
-		want2        int
+		want2        []int
 	}{
 		{
 			name:         "empty",
 			countOfWords: map[string]int{},
 			want:         map[int][]string{},
-			want2:        0,
+			want2:        nil,
 		},
 		{
 			name:         "single word",
 			countOfWords: map[string]int{"success": 1},
 			want:         map[int][]string{1: {"success"}},
-			want2:        1,
+			want2:        []int{1},
 		},
 		{
 			name: "groups words by count and sorts equal frequency",
@@ -170,14 +182,14 @@ func Test_createWordList(t *testing.T) {
 				2: {"a", "c"},
 				3: {"b"},
 			},
-			want2: 3,
+			want2: []int{2, 3, 1},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, got2 := createWordList(tt.countOfWords)
 			require.Equal(t, tt.want, got)
-			require.Equal(t, tt.want2, got2)
+			require.ElementsMatch(t, tt.want2, got2)
 		})
 	}
 }
@@ -188,31 +200,41 @@ func Test_wordCount(t *testing.T) {
 		// Named input parameters for target function.
 		strList []string
 		want    map[string]int
+		err     error
 	}{
 		{
 			name:    "empty",
 			strList: []string{},
-			want:    map[string]int{},
+			want:    nil,
+			err:     ErrStrListIsEmpty,
 		},
 		{
 			name:    "single word",
 			strList: []string{"success"},
 			want:    map[string]int{"success": 1},
+			err:     nil,
 		},
 		{
 			name:    "repeated words",
 			strList: []string{"a", "b", "a", "c", "b", "a"},
 			want:    map[string]int{"a": 3, "b": 2, "c": 1},
+			err:     nil,
 		},
 		{
 			name:    "words with punctuation inside",
 			strList: []string{"dog,cat", "dog...cat", "dog,cat", "--"},
 			want:    map[string]int{"dog,cat": 2, "dog...cat": 1, "--": 1},
+			err:     nil,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := wordCount(tt.strList)
+			got, gotErr := wordCount(tt.strList)
+			if tt.err != nil {
+				require.ErrorIs(t, gotErr, tt.err)
+				return
+			}
+			require.NoError(t, gotErr)
 			require.Equal(t, tt.want, got)
 		})
 	}
