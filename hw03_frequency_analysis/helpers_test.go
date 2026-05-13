@@ -6,47 +6,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_cmp(t *testing.T) {
-	tests := []struct {
-		name string
-		el1  string
-		el2  string
-		want int
-	}{
-		{
-			el1:  "б",
-			el2:  "а",
-			want: 1,
-		},
-		{
-			el1:  "а",
-			el2:  "б",
-			want: -1,
-		},
-		{
-			el1:  "б",
-			el2:  "б",
-			want: 0,
-		},
-		{
-			el1:  "б",
-			el2:  "бa",
-			want: -1,
-		},
-		{
-			el1:  "бa",
-			el2:  "б ",
-			want: 1,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := cmp(tt.el1, tt.el2)
-			require.Equal(t, tt.want, got)
-		})
-	}
-}
-
 func Test_isMultDash(t *testing.T) {
 	tests := []struct {
 		name string
@@ -114,121 +73,78 @@ func Test_processWord(t *testing.T) {
 	}
 }
 
-func Test_getRes(t *testing.T) {
+func Test_sortByFrequency(t *testing.T) {
 	tests := []struct {
-		name string // description of this test case
-		// Named input parameters for target function.
-		wordList  map[int][]string
-		frequency []int
-		want      []string
+		name   string
+		counts map[string]int
+		want   []string
 	}{
 		{
-			name:      "succes",
-			wordList:  map[int][]string{7: {"a", "b"}},
-			frequency: []int{7},
-			want:      []string{"a", "b"},
+			name:   "empty",
+			counts: map[string]int{},
+			want:   []string{},
 		},
 		{
-			name:      "zero max value",
-			wordList:  map[int][]string{},
-			frequency: []int{},
-			want:      []string{},
+			name:   "single frequency",
+			counts: map[string]int{"b": 7, "a": 7},
+			want:   []string{"a", "b"},
 		},
 		{
-			name: "more than 10",
-			wordList: map[int][]string{
-				7:  {"a", "b"},
-				8:  {"c", "d", "e"},
-				2:  {"f", "g", "l"},
-				11: {"r", "q", "p"},
+			name: "sorts by frequency descending and word ascending",
+			counts: map[string]int{
+				"a": 7,
+				"b": 7,
+				"c": 8,
+				"d": 8,
+				"e": 8,
+				"f": 2,
+				"g": 2,
+				"l": 2,
+				"p": 11,
+				"q": 11,
+				"r": 11,
 			},
-			frequency: []int{11, 8, 7, 2},
-			want:      []string{"r", "q", "p", "c", "d", "e", "a", "b", "f", "g"},
+			want: []string{"p", "q", "r", "c", "d", "e", "a", "b", "f", "g", "l"},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := getRes(tt.wordList, tt.frequency)
+			got := sortByFrequency(tt.counts)
 			require.Equal(t, tt.want, got)
 		})
 	}
 }
 
-func Test_createWordList(t *testing.T) {
+func Test_countWords(t *testing.T) {
 	tests := []struct {
-		name         string
-		countOfWords map[string]int
-		want         map[int][]string
-		want2        []int
+		name string
+		text string
+		want map[string]int
 	}{
 		{
-			name:         "empty",
-			countOfWords: map[string]int{},
-			want:         map[int][]string{},
-			want2:        nil,
+			name: "empty",
+			text: "",
+			want: map[string]int{},
 		},
 		{
-			name:         "single word",
-			countOfWords: map[string]int{"success": 1},
-			want:         map[int][]string{1: {"success"}},
-			want2:        []int{1},
+			name: "single word",
+			text: "success",
+			want: map[string]int{"success": 1},
 		},
 		{
-			name: "groups words by count and sorts equal frequency",
-			countOfWords: map[string]int{
-				"c": 2,
-				"a": 2,
-				"b": 3,
-				"d": 1,
-			},
-			want: map[int][]string{
-				1: {"d"},
-				2: {"a", "c"},
-				3: {"b"},
-			},
-			want2: []int{2, 3, 1},
+			name: "repeated words",
+			text: "a b a c b a",
+			want: map[string]int{"a": 3, "b": 2, "c": 1},
+		},
+		{
+			name: "normalizes words",
+			text: "Нога нога, - dog,cat dog,cat --",
+			want: map[string]int{"нога": 2, "dog,cat": 2, "--": 1},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, got2 := createWordList(tt.countOfWords)
-			require.Equal(t, tt.want, got)
-			require.ElementsMatch(t, tt.want2, got2)
-		})
-	}
-}
-
-func Test_wordCount(t *testing.T) {
-	tests := []struct {
-		name string // description of this test case
-		// Named input parameters for target function.
-		strList []string
-		want    map[string]int
-	}{
-		{
-			name:    "empty",
-			strList: []string{},
-			want:    map[string]int{},
-		},
-		{
-			name:    "single word",
-			strList: []string{"success"},
-			want:    map[string]int{"success": 1},
-		},
-		{
-			name:    "repeated words",
-			strList: []string{"a", "b", "a", "c", "b", "a"},
-			want:    map[string]int{"a": 3, "b": 2, "c": 1},
-		},
-		{
-			name:    "words with punctuation inside",
-			strList: []string{"dog,cat", "dog...cat", "dog,cat", "--"},
-			want:    map[string]int{"dog,cat": 2, "dog...cat": 1, "--": 1},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := wordCount(tt.strList)
+			got := countWords(tt.text)
 			require.Equal(t, tt.want, got)
 		})
 	}

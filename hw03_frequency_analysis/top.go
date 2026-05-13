@@ -1,22 +1,12 @@
 package hw03frequencyanalysis
 
-import (
-	"strings"
-)
-
 func Top10(text string) []string {
-	// * Словом считается набор символов, разделенных пробельными символами.
-	// Пробельные симоволы это unicode.IsSpace
-	strList := strings.Fields(text)
+	counts := countWords(text)
+	words := sortByFrequency(counts)
 
-	countOfWords := wordCount(strList)
-	if len(countOfWords) == 0 {
-		return []string{}
+	if len(words) > 10 {
+		words = words[:10]
 	}
 
-	wordList, maxValue := createWordList(countOfWords)
-
-	res := getRes(wordList, maxValue)
-
-	return res
+	return words
 }

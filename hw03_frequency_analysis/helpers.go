@@ -1,76 +1,41 @@
 package hw03frequencyanalysis
 
 import (
-	"slices"
+	"sort"
 	"strings"
 	"unicode"
 )
 
-func wordCount(strList []string) map[string]int {
-	countOfWords := make(map[string]int)
-	var processedWord string
-	for _, word := range strList {
-		var err error
-		processedWord, err = processWord(word)
+func countWords(text string) map[string]int {
+	counts := make(map[string]int)
+	for _, word := range strings.Fields(text) {
+		word, err := processWord(word)
 		if err != nil {
 			continue
 		}
-		countOfWords[processedWord]++
+		counts[word]++
 	}
-	return countOfWords
+	return counts
 }
 
-func createWordList(countOfWords map[string]int) (wordList map[int][]string, frequency []int) {
-	wordList = make(map[int][]string, 0)
-	for key, value := range countOfWords {
-		if _, ok := wordList[value]; !ok {
-			wordList[value] = []string{}
-		}
-		sl := wordList[value]
-		sl = append(sl, key)
-
-		wordList[value] = sl
-		frequency = append(frequency, value)
-	}
-	// Если слова имеют одинаковую частоту, то должны быть отсортированы **лексикографически**.
-	for _, v := range wordList {
-		slices.SortFunc(v, cmp)
+func sortByFrequency(counts map[string]int) []string {
+	words := make([]string, 0, len(counts))
+	for word := range counts {
+		words = append(words, word)
 	}
 
-	frequency = uniqueInts(frequency)
+	sort.Slice(words, frequencyLess(words, counts))
 
-	return wordList, frequency
+	return words
 }
 
-func getRes(wordList map[int][]string, frequency []int) []string {
-	if len(frequency) == 0 {
-		return []string{}
-	}
-
-	slices.SortFunc(frequency, func(el1, el2 int) int {
-		switch {
-		case el2 > el1:
-			return 1
-		case el1 == el2:
-			return 0
-		default:
-			return -1
+func frequencyLess(words []string, counts map[string]int) func(i, j int) bool {
+	return func(i, j int) bool {
+		if counts[words[i]] == counts[words[j]] {
+			return words[i] < words[j]
 		}
-	})
-
-	res := make([]string, 0)
-	// * Если есть более 10 самых частотых слов (например 15 разных слов встречаются ровно 133 раза,
-	// остальные < 100), то следует вернуть 10 лексикографически первых слов.
-	for _, v := range frequency {
-		for ind := range wordList[v] {
-			if len(res) == 10 {
-				break
-			}
-			el := wordList[v][ind]
-			res = append(res, el)
-		}
+		return counts[words[i]] > counts[words[j]]
 	}
-	return res
 }
 
 func processWord(word string) (string, error) {
@@ -127,23 +92,4 @@ func isMultDash(word string) (bool, error) {
 	}
 
 	return true, nil
-}
-
-func cmp(el1, el2 string) int {
-	return strings.Compare(el1, el2)
-}
-
-func uniqueInts(nums []int) []int {
-	seen := make(map[int]struct{}, len(nums))
-	result := make([]int, 0, len(nums))
-
-	for _, n := range nums {
-		if _, ok := seen[n]; ok {
-			continue
-		}
-		seen[n] = struct{}{}
-		result = append(result, n)
-	}
-
-	return result
 }
