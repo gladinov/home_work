@@ -1,6 +1,6 @@
-module github.com/fixme_my_friend/hw03_frequency_analysis
+module github.com/gladinov/home_work/hw03_frequency_analysis
 
-go 1.23
+go 1.23.0
 
 require github.com/stretchr/testify v1.7.0
 
