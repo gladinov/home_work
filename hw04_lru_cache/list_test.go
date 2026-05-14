@@ -59,8 +59,8 @@ func Test_list_PushFront(t *testing.T) {
 		got := l.PushFront(key, value)
 		require.Equal(t, want, got)
 		require.Equal(t, want, l.Front())
+		require.Equal(t, want, l.Back())
 		require.Equal(t, 1, l.len)
-		require.Nil(t, l.Back())
 	})
 
 	t.Run("new front with one elem", func(t *testing.T) {
@@ -77,6 +77,7 @@ func Test_list_PushFront(t *testing.T) {
 		require.Equal(t, first, l.Front().Next)
 		require.Equal(t, 2, l.len)
 		require.NotNil(t, l.Back())
+		require.Equal(t, first, l.Back())
 	})
 
 	t.Run("new front with several elem", func(t *testing.T) {
@@ -95,9 +96,8 @@ func Test_list_PushFront(t *testing.T) {
 		require.Equal(t, want, l.Front())
 		require.Equal(t, second, l.Front().Next)
 		require.Equal(t, 3, l.Len())
-		require.Equal(t, first, l.Back())
-
 		require.NotNil(t, l.Back())
+		require.Equal(t, first, l.Back())
 	})
 }
 
@@ -110,8 +110,8 @@ func Test_list_PushBack(t *testing.T) {
 		got := l.PushBack(key, value)
 		require.Equal(t, want, got)
 		require.Equal(t, want, l.Front())
+		require.Equal(t, want, l.Back())
 		require.Equal(t, 1, l.len)
-		require.Nil(t, l.Back())
 	})
 
 	t.Run("one elem list", func(t *testing.T) {
@@ -126,7 +126,6 @@ func Test_list_PushBack(t *testing.T) {
 		require.Equal(t, want, got)
 		require.Equal(t, want, l.Back())
 		require.Equal(t, 2, l.len)
-		require.NotNil(t, l.Back())
 		require.Equal(t, first, l.Front())
 		require.Equal(t, want, l.Front().Next)
 	})
@@ -146,7 +145,6 @@ func Test_list_PushBack(t *testing.T) {
 		require.Equal(t, want, got)
 		require.Equal(t, want, l.Back())
 		require.Equal(t, 3, l.len)
-		require.NotNil(t, l.Back())
 		require.Equal(t, second, l.Front())
 		require.Equal(t, want, first.Next)
 	})

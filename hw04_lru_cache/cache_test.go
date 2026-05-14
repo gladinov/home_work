@@ -188,6 +188,19 @@ func Test_lruCache_Set(t *testing.T) {
 		require.Equal(t, newKey, cache.queue.Front().Key)
 		require.Equal(t, key, cache.queue.Back().Key)
 	})
+
+	t.Run("capacity one evicts previous item", func(t *testing.T) {
+		cache := NewCache(1)
+		cache.Set("a", 1)
+		cache.Set("b", 2)
+		gotA, okA := cache.Get("a")
+		require.False(t, okA)
+		require.Nil(t, gotA)
+
+		gotB, okB := cache.Get("b")
+		require.True(t, okB)
+		require.Equal(t, 2, gotB)
+	})
 }
 
 func Test_lruCache_deleteBack(t *testing.T) {

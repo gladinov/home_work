@@ -51,12 +51,9 @@ func (l *list) Back() *ListItem {
 func (l *list) PushFront(key Key, v any) *ListItem {
 	newFront := NewListItem(key, v, l.front, nil)
 	if l.Front() == nil {
-		l.front = newFront
+		l.back = newFront
 	} else {
 		l.front.Prev = newFront
-		if l.Len() == 1 {
-			l.back = l.front
-		}
 	}
 	l.front = newFront
 	l.len++
@@ -65,14 +62,9 @@ func (l *list) PushFront(key Key, v any) *ListItem {
 
 func (l *list) PushBack(key Key, v any) *ListItem {
 	if l.front == nil {
-		l.front = NewListItem(key, v, nil, nil)
-		l.len++
-		return l.front
-	}
-	if l.Back() == nil {
-		newBack := NewListItem(key, v, nil, l.front)
-		l.front.Next = newBack
-		l.back = newBack
+		newFront := NewListItem(key, v, nil, nil)
+		l.front = newFront
+		l.back = newFront
 	} else {
 		newBack := NewListItem(key, v, nil, l.back)
 		l.back.Next = newBack
@@ -113,18 +105,12 @@ func (l *list) MoveToFront(i *ListItem) {
 	if l.front == i {
 		return
 	}
-	// Удалили элемент с текущей позиции
 	l.Remove(i)
 
-	// Задали первому элементу предудыший элемент равным i
 	l.front.Prev = i
-	// Предыдущий для i равен nil после перемещения его впредед
 	i.Prev = nil
-	// Задали новому первому элементу next
 	i.Next = l.front
-	// Сделали i первым элементом list
 	l.front = i
 
-	// Вернули счетчик к исзодному значению
 	l.len++
 }
