@@ -174,6 +174,50 @@ func Test_list_Remove(t *testing.T) {
 		require.Equal(t, first, l.Front().Next)
 		require.Equal(t, third, l.Back().Prev)
 	})
+
+	t.Run("delete back elem", func(t *testing.T) {
+		var l list
+		wantLen := 2
+		firstKey, secondKey, thirdKey := Key("first"), Key("second"), Key("third")
+		firstValue, secondValue, thirdValue := 1, 2, 3
+		first := l.PushFront(firstKey, firstValue)
+		second := l.PushFront(secondKey, secondValue)
+		_ = l.PushFront(thirdKey, thirdValue) // [3,2,1]
+
+		l.Remove(first)
+
+		require.Equal(t, wantLen, l.Len())
+		require.Equal(t, second, l.Back())
+	})
+
+	t.Run("delete front elem", func(t *testing.T) {
+		var l list
+		wantLen := 2
+		firstKey, secondKey, thirdKey := Key("first"), Key("second"), Key("third")
+		firstValue, secondValue, thirdValue := 1, 2, 3
+		_ = l.PushFront(firstKey, firstValue)
+		second := l.PushFront(secondKey, secondValue)
+		third := l.PushFront(thirdKey, thirdValue) // [3,2,1]
+
+		l.Remove(third)
+
+		require.Equal(t, wantLen, l.Len())
+		require.Equal(t, second, l.Front())
+	})
+
+	t.Run("delete single elem", func(t *testing.T) {
+		var l list
+		wantLen := 0
+		firstKey := Key("first")
+		firstValue := 1
+		first := l.PushFront(firstKey, firstValue)
+
+		l.Remove(first)
+
+		require.Equal(t, wantLen, l.Len())
+		require.Nil(t, l.Front())
+		require.Nil(t, l.Back())
+	})
 }
 
 func Test_list_MoveToFront(t *testing.T) {

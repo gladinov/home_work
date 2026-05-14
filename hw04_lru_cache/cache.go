@@ -40,24 +40,24 @@ func (c *lruCache) Set(key Key, value any) bool {
 	return false
 }
 
+func (c *lruCache) Get(key Key) (any, bool) {
+	elem, ok := c.items[key]
+	if !ok {
+		return nil, false
+	}
+	c.queue.MoveToFront(elem)
+	return elem.Value, true
+}
+
+func (c *lruCache) Clear() {
+	c.queue = NewList()
+	c.items = make(map[Key]*ListItem, c.capacity)
+}
+
 func (c *lruCache) deleteBack() {
 	if c.queue.Len() < c.capacity {
 		return
 	}
 	delete(c.items, c.queue.Back().Key)
 	c.queue.Remove(c.queue.Back())
-}
-
-func (c *lruCache) Get(key Key) (any, bool) {
-	elem, ok := c.items[key]
-	if ok {
-		c.queue.MoveToFront(elem)
-		return elem.Value, true
-	}
-	return nil, false
-}
-
-func (c *lruCache) Clear() {
-	c.queue = NewList()
-	c.items = make(map[Key]*ListItem, c.capacity)
 }
