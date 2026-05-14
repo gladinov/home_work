@@ -9,6 +9,16 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const (
+	value, value2, value3, value4 = "value", "value2", "value3", "value4"
+	newValue                      = "new value"
+	key                           = Key("key")
+	key2                          = Key("key2")
+	key3                          = Key("key3")
+	key4                          = Key("key4")
+	invalidCacheValue             = "invalid cache value"
+)
+
 func TestCache(t *testing.T) {
 	t.Run("empty cache", func(t *testing.T) {
 		c := NewCache(10)
@@ -51,11 +61,6 @@ func TestCache(t *testing.T) {
 
 	t.Run("purge logic", func(t *testing.T) {
 		cache := NewCache(3)
-		key := Key("key")
-		key2 := Key("key2")
-		key3 := Key("key3")
-		key4 := Key("key4")
-		value, value2, value3, value4 := "value", "value2", "value3", "value4"
 
 		cache.Set(key, value)
 		cache.Set(key2, value2)
@@ -75,7 +80,7 @@ func TestCache(t *testing.T) {
 	})
 }
 
-func TestCacheMultithreading(t *testing.T) {
+func TestCacheMultithreading(_ *testing.T) {
 	c := NewCache(10)
 	wg := &sync.WaitGroup{}
 	wg.Add(2)
@@ -99,14 +104,11 @@ func TestCacheMultithreading(t *testing.T) {
 
 func Test_lruCache_Set(t *testing.T) {
 	t.Run("new elem", func(t *testing.T) {
-		capacity := 2
 		cache := &lruCache{
-			capacity: capacity,
+			capacity: 2,
 			queue:    NewList(),
-			items:    make(map[Key]*ListItem, capacity),
+			items:    make(map[Key]*ListItem, 2),
 		}
-		key := Key("key")
-		value := "value"
 
 		wasInCache := cache.Set(key, value)
 
@@ -119,16 +121,13 @@ func Test_lruCache_Set(t *testing.T) {
 	})
 
 	t.Run("existing elem", func(t *testing.T) {
-		capacity := 2
 		cache := &lruCache{
-			capacity: capacity,
+			capacity: 2,
 			queue:    NewList(),
-			items:    make(map[Key]*ListItem, capacity),
+			items:    make(map[Key]*ListItem, 2),
 		}
-		key := Key("key")
-		oldValue := "value"
-		newValue := "new value"
-		cache.Set(key, oldValue)
+
+		cache.Set(key, value)
 
 		wasInCache := cache.Set(key, newValue)
 
@@ -140,46 +139,42 @@ func Test_lruCache_Set(t *testing.T) {
 	})
 
 	t.Run("existing elem moves to front", func(t *testing.T) {
-		capacity := 3
 		cache := &lruCache{
-			capacity: capacity,
+			capacity: 3,
 			queue:    NewList(),
-			items:    make(map[Key]*ListItem, capacity),
+			items:    make(map[Key]*ListItem, 3),
 		}
-		key := Key("key")
-		key2 := Key("key2")
-		key3 := Key("key3")
-		cache.Set(key, "value")
-		cache.Set(key2, "value2")
-		cache.Set(key3, "value3")
 
-		wasInCache := cache.Set(key, "new value")
+		cache.Set(key, value)
+		cache.Set(key2, value2)
+		cache.Set(key3, value3)
+
+		wasInCache := cache.Set(key, newValue)
 
 		require.True(t, wasInCache)
-		require.Equal(t, capacity, cache.queue.Len())
+		require.Equal(t, 3, cache.queue.Len())
 		require.Equal(t, key, cacheItemFromListItem(t, cache.queue.Front()).key)
 		require.Equal(t, key2, cacheItemFromListItem(t, cache.queue.Back()).key)
-		require.Equal(t, "new value", cacheItemFromListItem(t, cache.queue.Front()).value)
+		require.Equal(t, newValue, cacheItemFromListItem(t, cache.queue.Front()).value)
 	})
 
 	t.Run("purge old elem", func(t *testing.T) {
-		capacity := 2
 		cache := &lruCache{
-			capacity: capacity,
+			capacity: 2,
 			queue:    NewList(),
-			items:    make(map[Key]*ListItem, capacity),
+			items:    make(map[Key]*ListItem, 2),
 		}
 		oldKey := Key("old")
-		key := Key("key")
 		newKey := Key("new")
-		cache.Set(oldKey, "old value")
-		cache.Set(key, "value")
 
-		wasInCache := cache.Set(newKey, "new value")
+		cache.Set(oldKey, "old value")
+		cache.Set(key, value)
+
+		wasInCache := cache.Set(newKey, newValue)
 
 		require.False(t, wasInCache)
-		require.Equal(t, capacity, cache.queue.Len())
-		require.Len(t, cache.items, capacity)
+		require.Equal(t, 2, cache.queue.Len())
+		require.Len(t, cache.items, 2)
 		require.NotContains(t, cache.items, oldKey)
 		require.Contains(t, cache.items, key)
 		require.Contains(t, cache.items, newKey)
@@ -203,8 +198,8 @@ func Test_lruCache_Set(t *testing.T) {
 	t.Run("zero capacity stores nothing", func(t *testing.T) {
 		cache := NewCache(0)
 
-		wasInCache := cache.Set("key", "value")
-		got, ok := cache.Get("key")
+		wasInCache := cache.Set(key, value)
+		got, ok := cache.Get(key)
 
 		require.False(t, wasInCache)
 		require.False(t, ok)
@@ -214,8 +209,8 @@ func Test_lruCache_Set(t *testing.T) {
 	t.Run("negative capacity stores nothing", func(t *testing.T) {
 		cache := NewCache(-1)
 
-		wasInCache := cache.Set("key", "value")
-		got, ok := cache.Get("key")
+		wasInCache := cache.Set(key, value)
+		got, ok := cache.Get(key)
 
 		require.False(t, wasInCache)
 		require.False(t, ok)
@@ -225,60 +220,63 @@ func Test_lruCache_Set(t *testing.T) {
 
 func Test_lruCache_deleteBack(t *testing.T) {
 	t.Run("empty cash", func(t *testing.T) {
-		capacity := 2
 		cache := &lruCache{
-			capacity: capacity,
+			capacity: 2,
 			queue:    NewList(),
-			items:    make(map[Key]*ListItem, capacity),
+			items:    make(map[Key]*ListItem, 2),
 		}
 
 		require.NotPanics(t, func() { cache.deleteBack() })
 	})
 
 	t.Run("one elem, two cap", func(t *testing.T) {
-		capacity := 2
 		cache := &lruCache{
-			capacity: capacity,
+			capacity: 2,
 			queue:    NewList(),
-			items:    make(map[Key]*ListItem, capacity),
+			items:    make(map[Key]*ListItem, 2),
 		}
-		cache.Set("key", "value")
+		cache.Set(key, value)
 		cache.deleteBack()
 		require.Equal(t, 1, cache.queue.Len())
 	})
 
 	t.Run("two elem, two cap", func(t *testing.T) {
-		capacity := 2
 		cache := &lruCache{
-			capacity: capacity,
+			capacity: 2,
 			queue:    NewList(),
-			items:    make(map[Key]*ListItem, capacity),
+			items:    make(map[Key]*ListItem, 2),
 		}
-		key := Key("key")
-		key2 := Key("key2")
-		cache.Set(key, "value")
-		cache.Set(key2, "value2")
+		cache.Set(key, value)
+		cache.Set(key2, value2)
 		cache.deleteBack()
 		require.Equal(t, 1, cache.queue.Len())
 
 		require.Contains(t, cache.items, key2)
 	})
+
+	t.Run("panics on invalid cache item", func(t *testing.T) {
+		cache := &lruCache{
+			capacity: 1,
+			queue:    NewList(),
+			items:    make(map[Key]*ListItem, 1),
+		}
+		cache.queue.PushFront(invalidCacheValue)
+
+		require.Panics(t, cache.deleteBack)
+	})
 }
 
 func Test_lruCache_Clear(t *testing.T) {
-	t.Run("sucess", func(t *testing.T) {
-		capacity := 5
+	t.Run("success", func(t *testing.T) {
 		c := &lruCache{
-			capacity: capacity,
+			capacity: 5,
 			queue:    NewList(),
-			items:    make(map[Key]*ListItem, capacity),
+			items:    make(map[Key]*ListItem, 5),
 		}
 		wantLen := 2
 		wantLenAfterClear := 0
-		key := Key("key")
-		key2 := Key("key2")
-		c.Set(key, "value")
-		c.Set(key2, "value2")
+		c.Set(key, value)
+		c.Set(key2, value2)
 		require.Equal(t, wantLen, c.queue.Len())
 		require.Len(t, c.items, wantLen)
 		c.Clear()
@@ -288,55 +286,59 @@ func Test_lruCache_Clear(t *testing.T) {
 }
 
 func Test_lruCache_Get(t *testing.T) {
-	t.Run("sucess", func(t *testing.T) {
-		capacity := 5
+	t.Run("success", func(t *testing.T) {
 		c := &lruCache{
-			capacity: capacity,
+			capacity: 5,
 			queue:    NewList(),
-			items:    make(map[Key]*ListItem, capacity),
+			items:    make(map[Key]*ListItem, 5),
 		}
-		wantValue := "value"
-		wantValue2 := "value2"
-		key := Key("key")
-		key2 := Key("key2")
-		c.Set(key, wantValue)
-		c.Set(key2, wantValue2)
-		value, ok := c.Get(key)
-		value2, ok2 := c.Get(key2)
-		require.Equal(t, wantValue, value)
-		require.Equal(t, wantValue2, value2)
+
+		c.Set(key, value)
+		c.Set(key2, value2)
+		got, ok := c.Get(key)
+		got2, ok2 := c.Get(key2)
+		require.Equal(t, value, got)
+		require.Equal(t, value2, got2)
 		require.True(t, ok)
 		require.True(t, ok2)
 	})
 	t.Run("elem not in cashe", func(t *testing.T) {
-		capacity := 5
 		c := &lruCache{
-			capacity: capacity,
+			capacity: 5,
 			queue:    NewList(),
-			items:    make(map[Key]*ListItem, capacity),
+			items:    make(map[Key]*ListItem, 5),
 		}
-		key := Key("key")
 		value, ok := c.Get(key)
 		require.Nil(t, value)
 		require.False(t, ok)
 	})
 
 	t.Run("last get elem become front", func(t *testing.T) {
-		capacity := 5
 		c := &lruCache{
-			capacity: capacity,
+			capacity: 5,
 			queue:    NewList(),
-			items:    make(map[Key]*ListItem, capacity),
+			items:    make(map[Key]*ListItem, 5),
 		}
-		wantValue := "value"
-		wantValue2 := "value2"
-		key := Key("key")
-		key2 := Key("key2")
-		c.Set(key, wantValue)
-		c.Set(key2, wantValue2)
+
+		c.Set(key, value)
+		c.Set(key2, value2)
 		_, _ = c.Get(key)
-		value2, _ := c.Get(key2)
-		require.Equal(t, value2, cacheItemFromListItem(t, c.queue.Front()).value)
+		got2, _ := c.Get(key2)
+		require.Equal(t, got2, cacheItemFromListItem(t, c.queue.Front()).value)
+	})
+
+	t.Run("panics on invalid cache item", func(t *testing.T) {
+		c := &lruCache{
+			capacity: 1,
+			queue:    NewList(),
+			items:    make(map[Key]*ListItem, 1),
+		}
+		item := c.queue.PushFront(invalidCacheValue)
+		c.items[key] = item
+
+		require.Panics(t, func() {
+			_, _ = c.Get(key)
+		})
 	})
 }
 

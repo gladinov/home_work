@@ -53,9 +53,8 @@ func TestList(t *testing.T) {
 func Test_list_PushFront(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		var l list
-		value := 10
-		want := NewListItem(value, nil, nil)
-		got := l.PushFront(value)
+		want := NewListItem(10, nil, nil)
+		got := l.PushFront(10)
 		require.Equal(t, want, got)
 		require.Equal(t, want, l.Front())
 		require.Equal(t, want, l.Back())
@@ -64,11 +63,9 @@ func Test_list_PushFront(t *testing.T) {
 
 	t.Run("new front with one elem", func(t *testing.T) {
 		var l list
-		firstvalue := 0
-		first := l.PushFront(firstvalue)
-		value := 10
-		want := NewListItem(value, first, nil)
-		got := l.PushFront(value)
+		first := l.PushFront(0)
+		want := NewListItem(10, first, nil)
+		got := l.PushFront(10)
 		require.Equal(t, want, got)
 		require.Equal(t, want, l.Front())
 		require.Equal(t, first, l.Front().Next)
@@ -79,13 +76,10 @@ func Test_list_PushFront(t *testing.T) {
 
 	t.Run("new front with several elem", func(t *testing.T) {
 		var l list
-		firstvalue := 1
-		first := l.PushFront(firstvalue)
-		secondValue := 2
-		second := l.PushFront(secondValue)
-		value := 10
-		want := NewListItem(value, second, nil)
-		got := l.PushFront(value)
+		first := l.PushFront(1)
+		second := l.PushFront(2)
+		want := NewListItem(10, second, nil)
+		got := l.PushFront(10)
 		require.Equal(t, want, got)
 		require.Equal(t, want, l.Front())
 		require.Equal(t, second, l.Front().Next)
@@ -98,9 +92,8 @@ func Test_list_PushFront(t *testing.T) {
 func Test_list_PushBack(t *testing.T) {
 	t.Run("zero list", func(t *testing.T) {
 		var l list
-		value := 10
-		want := NewListItem(value, nil, nil)
-		got := l.PushBack(value)
+		want := NewListItem(10, nil, nil)
+		got := l.PushBack(10)
 		require.Equal(t, want, got)
 		require.Equal(t, want, l.Front())
 		require.Equal(t, want, l.Back())
@@ -109,11 +102,9 @@ func Test_list_PushBack(t *testing.T) {
 
 	t.Run("one elem list", func(t *testing.T) {
 		var l list
-		firstvalue := 1
-		first := l.PushFront(firstvalue)
-		value := 10
-		want := NewListItem(value, nil, first)
-		got := l.PushBack(value)
+		first := l.PushFront(1)
+		want := NewListItem(10, nil, first)
+		got := l.PushBack(10)
 		require.Equal(t, want, got)
 		require.Equal(t, want, l.Back())
 		require.Equal(t, 2, l.len)
@@ -123,13 +114,10 @@ func Test_list_PushBack(t *testing.T) {
 
 	t.Run("more one elem list", func(t *testing.T) {
 		var l list
-		firstvalue := 1
-		first := l.PushFront(firstvalue)
-		secondValue := 2
-		second := l.PushFront(secondValue)
-		value := 10
-		want := NewListItem(value, nil, first)
-		got := l.PushBack(value)
+		first := l.PushFront(1)
+		second := l.PushFront(2)
+		want := NewListItem(10, nil, first)
+		got := l.PushBack(10)
 		require.Equal(t, want, got)
 		require.Equal(t, want, l.Back())
 		require.Equal(t, 3, l.len)
@@ -148,10 +136,9 @@ func Test_list_Remove(t *testing.T) {
 	t.Run("delete second elem", func(t *testing.T) {
 		var l list
 		wantLen := 2
-		firstValue, secondValue, thirdValue := 1, 2, 3
-		first := l.PushFront(firstValue)
-		second := l.PushFront(secondValue)
-		third := l.PushFront(thirdValue) // [3,2,1]
+		first := l.PushFront(1)
+		second := l.PushFront(2)
+		third := l.PushFront(3) // [3,2,1]
 
 		l.Remove(second)
 
@@ -163,10 +150,9 @@ func Test_list_Remove(t *testing.T) {
 	t.Run("delete back elem", func(t *testing.T) {
 		var l list
 		wantLen := 2
-		firstValue, secondValue, thirdValue := 1, 2, 3
-		first := l.PushFront(firstValue)
-		second := l.PushFront(secondValue)
-		_ = l.PushFront(thirdValue) // [3,2,1]
+		first := l.PushFront(1)
+		second := l.PushFront(2)
+		_ = l.PushFront(3) // [3,2,1]
 
 		l.Remove(first)
 
@@ -177,10 +163,9 @@ func Test_list_Remove(t *testing.T) {
 	t.Run("delete front elem", func(t *testing.T) {
 		var l list
 		wantLen := 2
-		firstValue, secondValue, thirdValue := 1, 2, 3
-		_ = l.PushFront(firstValue)
-		second := l.PushFront(secondValue)
-		third := l.PushFront(thirdValue) // [3,2,1]
+		_ = l.PushFront(1)
+		second := l.PushFront(2)
+		third := l.PushFront(3) // [3,2,1]
 
 		l.Remove(third)
 
@@ -191,8 +176,7 @@ func Test_list_Remove(t *testing.T) {
 	t.Run("delete single elem", func(t *testing.T) {
 		var l list
 		wantLen := 0
-		firstValue := 1
-		first := l.PushFront(firstValue)
+		first := l.PushFront(1)
 
 		l.Remove(first)
 
@@ -212,10 +196,9 @@ func Test_list_MoveToFront(t *testing.T) {
 
 	t.Run("i already first", func(t *testing.T) {
 		var l list
-		firstValue, secondValue, thirdValue := 1, 2, 3
-		_ = l.PushFront(firstValue)
-		_ = l.PushFront(secondValue)
-		third := l.PushFront(thirdValue) // [3,2,1]
+		_ = l.PushFront(1)
+		_ = l.PushFront(2)
+		third := l.PushFront(3) // [3,2,1]
 		require.NotPanics(t, func() { l.MoveToFront(third) })
 		require.Equal(t, 3, l.Len())
 		require.Equal(t, third, l.Front())
@@ -223,10 +206,9 @@ func Test_list_MoveToFront(t *testing.T) {
 
 	t.Run("_", func(t *testing.T) {
 		var l list
-		firstValue, secondValue, thirdValue := 1, 2, 3
-		first := l.PushBack(firstValue)
-		second := l.PushBack(secondValue)
-		third := l.PushBack(thirdValue)                        // [1,2,3]
+		first := l.PushBack(1)
+		second := l.PushBack(2)
+		third := l.PushBack(3)                                 // [1,2,3]
 		require.NotPanics(t, func() { l.MoveToFront(second) }) // [2,1,3]
 		require.Equal(t, 3, l.Len())
 		require.Equal(t, second, l.Front())
