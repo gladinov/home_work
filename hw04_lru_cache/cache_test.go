@@ -50,7 +50,23 @@ func TestCache(t *testing.T) {
 	})
 
 	t.Run("purge logic", func(t *testing.T) {
-		// Write me
+		capacity := 5
+		c := &lruCache{
+			capacity: capacity,
+			queue:    NewList(),
+			items:    make(map[Key]*ListItem, capacity),
+		}
+		wantLen := 2
+		wantLenAfterClear := 0
+		key := Key("key")
+		key2 := Key("key2")
+		c.Set(key, "value")
+		c.Set(key2, "value2")
+		require.Equal(t, wantLen, c.queue.Len())
+		require.Len(t, c.items, wantLen)
+		c.Clear()
+		require.Equal(t, wantLenAfterClear, c.queue.Len())
+		require.Len(t, c.items, wantLenAfterClear)
 	})
 }
 
@@ -76,4 +92,46 @@ func TestCacheMultithreading(t *testing.T) {
 	}()
 
 	wg.Wait()
+}
+
+func Test_lruCache_deleteBack(t *testing.T) {
+	t.Run("empty cash", func(t *testing.T) {
+		capacity := 2
+		cache := &lruCache{
+			capacity: capacity,
+			queue:    NewList(),
+			items:    make(map[Key]*ListItem, capacity),
+		}
+
+		require.NotPanics(t, func() { cache.deleteBack() })
+	})
+
+	t.Run("one elem, two cap", func(t *testing.T) {
+		capacity := 2
+		cache := &lruCache{
+			capacity: capacity,
+			queue:    NewList(),
+			items:    make(map[Key]*ListItem, capacity),
+		}
+		cache.Set("key", "value")
+		cache.deleteBack()
+		require.Equal(t, 1, cache.queue.Len())
+	})
+
+	t.Run("two elem, two cap", func(t *testing.T) {
+		capacity := 2
+		cache := &lruCache{
+			capacity: capacity,
+			queue:    NewList(),
+			items:    make(map[Key]*ListItem, capacity),
+		}
+		key := Key("key")
+		key2 := Key("key2")
+		cache.Set(key, "value")
+		cache.Set(key2, "value2")
+		cache.deleteBack()
+		require.Equal(t, 1, cache.queue.Len())
+
+		require.Contains(t, cache.items, key2)
+	})
 }
