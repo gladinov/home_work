@@ -49,3 +49,170 @@ func TestList(t *testing.T) {
 		require.Equal(t, []int{70, 80, 60, 40, 10, 30, 50}, elems)
 	})
 }
+
+func Test_list_PushFront(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		var l list
+		want := NewListItem(10, nil, nil)
+		got := l.PushFront(10)
+		require.Equal(t, want, got)
+		require.Equal(t, want, l.Front())
+		require.Equal(t, want, l.Back())
+		require.Equal(t, 1, l.len)
+	})
+
+	t.Run("new front with one elem", func(t *testing.T) {
+		var l list
+		first := l.PushFront(0)
+		want := NewListItem(10, first, nil)
+		got := l.PushFront(10)
+		require.Equal(t, want, got)
+		require.Equal(t, want, l.Front())
+		require.Equal(t, first, l.Front().Next)
+		require.Equal(t, 2, l.len)
+		require.NotNil(t, l.Back())
+		require.Equal(t, first, l.Back())
+	})
+
+	t.Run("new front with several elem", func(t *testing.T) {
+		var l list
+		first := l.PushFront(1)
+		second := l.PushFront(2)
+		want := NewListItem(10, second, nil)
+		got := l.PushFront(10)
+		require.Equal(t, want, got)
+		require.Equal(t, want, l.Front())
+		require.Equal(t, second, l.Front().Next)
+		require.Equal(t, 3, l.Len())
+		require.NotNil(t, l.Back())
+		require.Equal(t, first, l.Back())
+	})
+}
+
+func Test_list_PushBack(t *testing.T) {
+	t.Run("zero list", func(t *testing.T) {
+		var l list
+		want := NewListItem(10, nil, nil)
+		got := l.PushBack(10)
+		require.Equal(t, want, got)
+		require.Equal(t, want, l.Front())
+		require.Equal(t, want, l.Back())
+		require.Equal(t, 1, l.len)
+	})
+
+	t.Run("one elem list", func(t *testing.T) {
+		var l list
+		first := l.PushFront(1)
+		want := NewListItem(10, nil, first)
+		got := l.PushBack(10)
+		require.Equal(t, want, got)
+		require.Equal(t, want, l.Back())
+		require.Equal(t, 2, l.len)
+		require.Equal(t, first, l.Front())
+		require.Equal(t, want, l.Front().Next)
+	})
+
+	t.Run("more one elem list", func(t *testing.T) {
+		var l list
+		first := l.PushFront(1)
+		second := l.PushFront(2)
+		want := NewListItem(10, nil, first)
+		got := l.PushBack(10)
+		require.Equal(t, want, got)
+		require.Equal(t, want, l.Back())
+		require.Equal(t, 3, l.len)
+		require.Equal(t, second, l.Front())
+		require.Equal(t, want, first.Next)
+	})
+}
+
+func Test_list_Remove(t *testing.T) {
+	t.Run("nil", func(t *testing.T) {
+		var l list
+
+		require.NotPanics(t, func() { l.Remove(nil) })
+	})
+
+	t.Run("delete second elem", func(t *testing.T) {
+		var l list
+		wantLen := 2
+		first := l.PushFront(1)
+		second := l.PushFront(2)
+		third := l.PushFront(3) // [3,2,1]
+
+		l.Remove(second)
+
+		require.Equal(t, wantLen, l.Len())
+		require.Equal(t, first, l.Front().Next)
+		require.Equal(t, third, l.Back().Prev)
+	})
+
+	t.Run("delete back elem", func(t *testing.T) {
+		var l list
+		wantLen := 2
+		first := l.PushFront(1)
+		second := l.PushFront(2)
+		_ = l.PushFront(3) // [3,2,1]
+
+		l.Remove(first)
+
+		require.Equal(t, wantLen, l.Len())
+		require.Equal(t, second, l.Back())
+	})
+
+	t.Run("delete front elem", func(t *testing.T) {
+		var l list
+		wantLen := 2
+		_ = l.PushFront(1)
+		second := l.PushFront(2)
+		third := l.PushFront(3) // [3,2,1]
+
+		l.Remove(third)
+
+		require.Equal(t, wantLen, l.Len())
+		require.Equal(t, second, l.Front())
+	})
+
+	t.Run("delete single elem", func(t *testing.T) {
+		var l list
+		wantLen := 0
+		first := l.PushFront(1)
+
+		l.Remove(first)
+
+		require.Equal(t, wantLen, l.Len())
+		require.Nil(t, l.Front())
+		require.Nil(t, l.Back())
+	})
+}
+
+func Test_list_MoveToFront(t *testing.T) {
+	t.Run("nil", func(t *testing.T) {
+		var l list
+
+		require.NotPanics(t, func() { l.MoveToFront(nil) })
+		require.Equal(t, 0, l.Len())
+	})
+
+	t.Run("i already first", func(t *testing.T) {
+		var l list
+		_ = l.PushFront(1)
+		_ = l.PushFront(2)
+		third := l.PushFront(3) // [3,2,1]
+		require.NotPanics(t, func() { l.MoveToFront(third) })
+		require.Equal(t, 3, l.Len())
+		require.Equal(t, third, l.Front())
+	})
+
+	t.Run("_", func(t *testing.T) {
+		var l list
+		first := l.PushBack(1)
+		second := l.PushBack(2)
+		third := l.PushBack(3)                                 // [1,2,3]
+		require.NotPanics(t, func() { l.MoveToFront(second) }) // [2,1,3]
+		require.Equal(t, 3, l.Len())
+		require.Equal(t, second, l.Front())
+		require.Equal(t, first.Prev, second)
+		require.Equal(t, third.Prev, first)
+	})
+}
