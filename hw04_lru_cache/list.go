@@ -86,16 +86,14 @@ func (l *list) Remove(i *ListItem) {
 	if i == nil {
 		return
 	}
-	//  Переносим ссылку предудущего элемента
 	if i.Prev != nil {
 		i.Prev.Next = i.Next
 	}
 
-	// Переносим ссылку последующего элемента
 	if i.Next != nil {
 		i.Next.Prev = i.Prev
 	}
-	// Если элемент последний или первый , то надо обработать front и back в list
+
 	if i == l.Front() {
 		l.front = i.Next
 	}
@@ -104,7 +102,6 @@ func (l *list) Remove(i *ListItem) {
 		l.back = i.Prev
 	}
 
-	// Уменьшаем счетчик
 	l.len--
 }
 
