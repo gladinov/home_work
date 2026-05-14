@@ -116,8 +116,8 @@ func Test_lruCache_Set(t *testing.T) {
 		require.Equal(t, 1, cache.queue.Len())
 		require.Len(t, cache.items, 1)
 		require.Contains(t, cache.items, key)
-		require.Equal(t, key, cache.queue.Front().Key)
-		require.Equal(t, value, cache.queue.Front().Value)
+		require.Equal(t, key, cacheItemFromListItem(t, cache.queue.Front()).key)
+		require.Equal(t, value, cacheItemFromListItem(t, cache.queue.Front()).value)
 	})
 
 	t.Run("existing elem", func(t *testing.T) {
@@ -137,8 +137,8 @@ func Test_lruCache_Set(t *testing.T) {
 		require.True(t, wasInCache)
 		require.Equal(t, 1, cache.queue.Len())
 		require.Len(t, cache.items, 1)
-		require.Equal(t, key, cache.queue.Front().Key)
-		require.Equal(t, newValue, cache.queue.Front().Value)
+		require.Equal(t, key, cacheItemFromListItem(t, cache.queue.Front()).key)
+		require.Equal(t, newValue, cacheItemFromListItem(t, cache.queue.Front()).value)
 	})
 
 	t.Run("existing elem moves to front", func(t *testing.T) {
@@ -159,9 +159,9 @@ func Test_lruCache_Set(t *testing.T) {
 
 		require.True(t, wasInCache)
 		require.Equal(t, capacity, cache.queue.Len())
-		require.Equal(t, key, cache.queue.Front().Key)
-		require.Equal(t, key2, cache.queue.Back().Key)
-		require.Equal(t, "new value", cache.queue.Front().Value)
+		require.Equal(t, key, cacheItemFromListItem(t, cache.queue.Front()).key)
+		require.Equal(t, key2, cacheItemFromListItem(t, cache.queue.Back()).key)
+		require.Equal(t, "new value", cacheItemFromListItem(t, cache.queue.Front()).value)
 	})
 
 	t.Run("purge old elem", func(t *testing.T) {
@@ -185,8 +185,8 @@ func Test_lruCache_Set(t *testing.T) {
 		require.NotContains(t, cache.items, oldKey)
 		require.Contains(t, cache.items, key)
 		require.Contains(t, cache.items, newKey)
-		require.Equal(t, newKey, cache.queue.Front().Key)
-		require.Equal(t, key, cache.queue.Back().Key)
+		require.Equal(t, newKey, cacheItemFromListItem(t, cache.queue.Front()).key)
+		require.Equal(t, key, cacheItemFromListItem(t, cache.queue.Back()).key)
 	})
 
 	t.Run("capacity one evicts previous item", func(t *testing.T) {
@@ -200,6 +200,28 @@ func Test_lruCache_Set(t *testing.T) {
 		gotB, okB := cache.Get("b")
 		require.True(t, okB)
 		require.Equal(t, 2, gotB)
+	})
+
+	t.Run("zero capacity stores nothing", func(t *testing.T) {
+		cache := NewCache(0)
+
+		wasInCache := cache.Set("key", "value")
+		got, ok := cache.Get("key")
+
+		require.False(t, wasInCache)
+		require.False(t, ok)
+		require.Nil(t, got)
+	})
+
+	t.Run("negative capacity stores nothing", func(t *testing.T) {
+		cache := NewCache(-1)
+
+		wasInCache := cache.Set("key", "value")
+		got, ok := cache.Get("key")
+
+		require.False(t, wasInCache)
+		require.False(t, ok)
+		require.Nil(t, got)
 	})
 }
 
@@ -316,6 +338,14 @@ func Test_lruCache_Get(t *testing.T) {
 		c.Set(key2, wantValue2)
 		_, _ = c.Get(key)
 		value2, _ := c.Get(key2)
-		require.Equal(t, value2, c.queue.Front().Value)
+		require.Equal(t, value2, cacheItemFromListItem(t, c.queue.Front()).value)
 	})
+}
+
+func cacheItemFromListItem(t *testing.T, item *ListItem) *cacheItem {
+	t.Helper()
+	require.NotNil(t, item)
+	value, ok := item.Value.(*cacheItem)
+	require.True(t, ok)
+	return value
 }

@@ -4,22 +4,20 @@ type List interface {
 	Len() int
 	Front() *ListItem
 	Back() *ListItem
-	PushFront(key Key, v any) *ListItem
-	PushBack(key Key, v any) *ListItem
+	PushFront(v any) *ListItem
+	PushBack(v any) *ListItem
 	Remove(i *ListItem)
 	MoveToFront(i *ListItem)
 }
 
 type ListItem struct {
-	Key   Key
 	Value any
 	Next  *ListItem
 	Prev  *ListItem
 }
 
-func NewListItem(key Key, value any, next, prev *ListItem) *ListItem {
+func NewListItem(value any, next, prev *ListItem) *ListItem {
 	return &ListItem{
-		Key:   key,
 		Value: value,
 		Next:  next,
 		Prev:  prev,
@@ -48,8 +46,8 @@ func (l *list) Back() *ListItem {
 	return l.back
 }
 
-func (l *list) PushFront(key Key, v any) *ListItem {
-	newFront := NewListItem(key, v, l.front, nil)
+func (l *list) PushFront(v any) *ListItem {
+	newFront := NewListItem(v, l.front, nil)
 	if l.Front() == nil {
 		l.back = newFront
 	} else {
@@ -60,13 +58,13 @@ func (l *list) PushFront(key Key, v any) *ListItem {
 	return l.front
 }
 
-func (l *list) PushBack(key Key, v any) *ListItem {
+func (l *list) PushBack(v any) *ListItem {
 	if l.front == nil {
-		newFront := NewListItem(key, v, nil, nil)
+		newFront := NewListItem(v, nil, nil)
 		l.front = newFront
 		l.back = newFront
 	} else {
-		newBack := NewListItem(key, v, nil, l.back)
+		newBack := NewListItem(v, nil, l.back)
 		l.back.Next = newBack
 		l.back = newBack
 	}

@@ -14,7 +14,22 @@ type lruCache struct {
 	items    map[Key]*ListItem
 }
 
+type cacheItem struct {
+	key   Key
+	value any
+}
+
+func newCacheItem(key Key, value any) *cacheItem {
+	return &cacheItem{
+		key:   key,
+		value: value,
+	}
+}
+
 func NewCache(capacity int) Cache {
+	if capacity < 0 {
+		capacity = 0
+	}
 	return &lruCache{
 		capacity: capacity,
 		queue:    NewList(),
@@ -23,14 +38,18 @@ func NewCache(capacity int) Cache {
 }
 
 func (c *lruCache) Set(key Key, value any) bool {
+	if c.capacity <= 0 {
+		return false
+	}
+	cacheItemValue := newCacheItem(key, value)
 	elem, ok := c.items[key]
 	if ok {
-		elem.Value = value
+		elem.Value = cacheItemValue
 		c.queue.MoveToFront(elem)
 		return true
 	}
 	c.deleteBack()
-	item := c.queue.PushFront(key, value)
+	item := c.queue.PushFront(cacheItemValue)
 	c.items[key] = item
 	return false
 }
@@ -41,7 +60,8 @@ func (c *lruCache) Get(key Key) (any, bool) {
 		return nil, false
 	}
 	c.queue.MoveToFront(elem)
-	return elem.Value, true
+	item := elem.Value.(*cacheItem)
+	return item.value, true
 }
 
 func (c *lruCache) Clear() {
@@ -50,9 +70,12 @@ func (c *lruCache) Clear() {
 }
 
 func (c *lruCache) deleteBack() {
-	if c.queue.Len() < c.capacity {
+	if c.capacity <= 0 || c.queue.Len() < c.capacity {
 		return
 	}
-	delete(c.items, c.queue.Back().Key)
-	c.queue.Remove(c.queue.Back())
+	back := c.queue.Back()
+	cacheItemValue := back.Value.(*cacheItem)
+
+	delete(c.items, cacheItemValue.key)
+	c.queue.Remove(back)
 }
