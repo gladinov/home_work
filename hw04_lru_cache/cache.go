@@ -67,7 +67,10 @@ func (c *lruCache) Get(key Key) (any, bool) {
 		return nil, false
 	}
 	c.queue.MoveToFront(elem)
-	item := elem.Value.(*cacheItem)
+	item, ok := elem.Value.(*cacheItem)
+	if !ok {
+		panic("lru cache invariant violation: list item value is not *cacheItem")
+	}
 	return item.value, true
 }
 
@@ -83,8 +86,10 @@ func (c *lruCache) deleteBack() {
 		return
 	}
 	back := c.queue.Back()
-	cacheItemValue := back.Value.(*cacheItem)
-
+	cacheItemValue, ok := back.Value.(*cacheItem)
+	if !ok {
+		panic("lru cache invariant violation: list item value is not *cacheItem")
+	}
 	delete(c.items, cacheItemValue.key)
 	c.queue.Remove(back)
 }
