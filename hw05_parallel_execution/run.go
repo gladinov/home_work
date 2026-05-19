@@ -15,7 +15,7 @@ func Run(tasks []Task, n, m int) error {
 	workersCtx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	workersNumer := min(n, len(tasks))
+	workersNumer := n
 	if m <= 0 {
 		m = 0
 	}
