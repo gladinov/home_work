@@ -41,7 +41,7 @@ func Run(tasks []Task, n, m int) error {
 
 	for range errCh {
 		errCount++
-		if errCount > m {
+		if errCount >= m {
 			cancel()
 			return ErrErrorsLimitExceeded
 		}

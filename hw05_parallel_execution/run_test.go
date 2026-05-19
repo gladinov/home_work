@@ -89,6 +89,24 @@ func TestRun_extra(t *testing.T) {
 		require.Truef(t, errors.Is(err, ErrErrorsLimitExceeded), "actual err - %v", err)
 	})
 
+	t.Run("maxErr equal to task with errors", func(t *testing.T) {
+		tasksCount := 2
+		tasks := make([]Task, 0, tasksCount)
+
+		for i := 0; i < tasksCount; i++ {
+			err := fmt.Errorf("error from task %d", i)
+			tasks = append(tasks, func() error {
+				return err
+			})
+		}
+
+		workersCount := 10
+		maxErrorsCount := 2
+		err := Run(tasks, workersCount, maxErrorsCount)
+
+		require.Equal(t, ErrErrorsLimitExceeded, err)
+	})
+
 	t.Run("zero max errors with first task with expected err", func(t *testing.T) {
 		tasksCount := 1
 		tasks := make([]Task, 0, tasksCount)
