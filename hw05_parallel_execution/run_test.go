@@ -71,7 +71,7 @@ func TestRun(t *testing.T) {
 }
 
 func TestRunExtra(t *testing.T) {
-	t.Run("maxErr equal to task with errors", func(t *testing.T) {
+	t.Run("returns error when errors count equals limit", func(t *testing.T) {
 		tasksCount := 2
 		tasks := make([]Task, 0, tasksCount)
 
@@ -89,52 +89,45 @@ func TestRunExtra(t *testing.T) {
 		require.Equal(t, ErrErrorsLimitExceeded, err)
 	})
 
-	t.Run("zero max errors with first task with expected err", func(t *testing.T) {
-		tasks := []Task{func() error {
-			err := errors.New("error from task")
-			return err
-		}}
+	t.Run("treats non-positive max errors as zero allowed errors", func(t *testing.T) {
+		testCases := []struct {
+			name     string
+			maxErr   int
+			taskErr  error
+			expected error
+		}{
+			{
+				name:     "zero max errors returns error after first failed task",
+				maxErr:   0,
+				taskErr:  errors.New("error from task"),
+				expected: ErrErrorsLimitExceeded,
+			},
+			{
+				name:     "negative max errors returns error after first failed task",
+				maxErr:   -1,
+				taskErr:  errors.New("error from task"),
+				expected: ErrErrorsLimitExceeded,
+			},
+			{
+				name:   "zero max errors returns nil when task succeeds",
+				maxErr: 0,
+			},
+			{
+				name:   "negative max errors returns nil when task succeeds",
+				maxErr: -1,
+			},
+		}
 
-		workersCount := 10
-		maxErrorsCount := 0
-		err := Run(tasks, workersCount, maxErrorsCount)
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				tasks := []Task{func() error {
+					return tc.taskErr
+				}}
 
-		require.Equal(t, ErrErrorsLimitExceeded, err)
-	})
-
-	t.Run("less zero max errors with first task with expected err", func(t *testing.T) {
-		tasks := []Task{func() error {
-			err := errors.New("error from task")
-			return err
-		}}
-
-		workersCount := 10
-		maxErrorsCount := -1
-		err := Run(tasks, workersCount, maxErrorsCount)
-
-		require.Equal(t, ErrErrorsLimitExceeded, err)
-	})
-
-	t.Run("zero max errors with first task without err", func(t *testing.T) {
-		tasks := []Task{func() error {
-			return nil
-		}}
-
-		workersCount := 10
-		maxErrorsCount := 0
-		err := Run(tasks, workersCount, maxErrorsCount)
-		require.NoError(t, err)
-	})
-
-	t.Run("less zero max errors with first task without err", func(t *testing.T) {
-		tasks := []Task{func() error {
-			return nil
-		}}
-
-		workersCount := 10
-		maxErrorsCount := -1
-		err := Run(tasks, workersCount, maxErrorsCount)
-		require.NoError(t, err)
+				err := Run(tasks, 10, tc.maxErr)
+				require.Equal(t, tc.expected, err)
+			})
+		}
 	})
 
 	t.Run("runs all tasks when tasks count is less than workers count", func(t *testing.T) {
@@ -156,15 +149,34 @@ func TestRunExtra(t *testing.T) {
 		require.Equal(t, int32(len(tasks)), atomic.LoadInt32(&runTasksCount))
 	})
 
-	t.Run("returns nil when workers count is zero", func(t *testing.T) {
-		tasks := []Task{}
-		err := Run(tasks, 0, 1)
-		require.NoError(t, err)
-	})
+	t.Run("returns nil when there is nothing to run", func(t *testing.T) {
+		testCases := []struct {
+			name  string
+			tasks []Task
+			n     int
+			m     int
+		}{
+			{
+				name: "zero workers",
+				tasks: []Task{func() error {
+					return nil
+				}},
+				n: 0,
+				m: 1,
+			},
+			{
+				name:  "empty tasks",
+				tasks: []Task{},
+				n:     10,
+				m:     1,
+			},
+		}
 
-	t.Run("returns nil when tasks are empty", func(t *testing.T) {
-		tasks := []Task{}
-		err := Run(tasks, 10, 1)
-		require.NoError(t, err)
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				err := Run(tc.tasks, tc.n, tc.m)
+				require.NoError(t, err)
+			})
+		}
 	})
 }
