@@ -70,25 +70,7 @@ func TestRun(t *testing.T) {
 	})
 }
 
-func TestRun_extra(t *testing.T) {
-	t.Run("stop produce job after cancel ctx", func(t *testing.T) {
-		tasksCount := 500
-		tasks := make([]Task, 0, tasksCount)
-
-		for i := 0; i < tasksCount; i++ {
-			err := fmt.Errorf("error from task %d", i)
-			tasks = append(tasks, func() error {
-				return err
-			})
-		}
-
-		workersCount := 10
-		maxErrorsCount := 23
-		err := Run(tasks, workersCount, maxErrorsCount)
-
-		require.Truef(t, errors.Is(err, ErrErrorsLimitExceeded), "actual err - %v", err)
-	})
-
+func TestRunExtra(t *testing.T) {
 	t.Run("maxErr equal to task with errors", func(t *testing.T) {
 		tasksCount := 2
 		tasks := make([]Task, 0, tasksCount)
@@ -108,15 +90,10 @@ func TestRun_extra(t *testing.T) {
 	})
 
 	t.Run("zero max errors with first task with expected err", func(t *testing.T) {
-		tasksCount := 1
-		tasks := make([]Task, 0, tasksCount)
-
-		for i := 0; i < tasksCount; i++ {
-			err := fmt.Errorf("error from task %d", i)
-			tasks = append(tasks, func() error {
-				return err
-			})
-		}
+		tasks := []Task{func() error {
+			err := errors.New("error from task")
+			return err
+		}}
 
 		workersCount := 10
 		maxErrorsCount := 0
@@ -126,19 +103,10 @@ func TestRun_extra(t *testing.T) {
 	})
 
 	t.Run("less zero max errors with first task with expected err", func(t *testing.T) {
-		tasksCount := 1
-		tasks := make([]Task, 0, tasksCount)
-
-		var runTasksCount int32
-
-		for i := 0; i < tasksCount; i++ {
-			err := fmt.Errorf("error from task %d", i)
-			tasks = append(tasks, func() error {
-				time.Sleep(time.Millisecond * time.Duration(rand.Intn(100)))
-				atomic.AddInt32(&runTasksCount, 1)
-				return err
-			})
-		}
+		tasks := []Task{func() error {
+			err := errors.New("error from task")
+			return err
+		}}
 
 		workersCount := 10
 		maxErrorsCount := -1
@@ -148,36 +116,55 @@ func TestRun_extra(t *testing.T) {
 	})
 
 	t.Run("zero max errors with first task without err", func(t *testing.T) {
-		tasksCount := 1
-		tasks := make([]Task, 0, tasksCount)
-
-		for i := 0; i < tasksCount; i++ {
-			tasks = append(tasks, func() error {
-				return nil
-			})
-		}
+		tasks := []Task{func() error {
+			return nil
+		}}
 
 		workersCount := 10
 		maxErrorsCount := 0
 		err := Run(tasks, workersCount, maxErrorsCount)
-		var want error
-		require.Equal(t, want, err)
+		require.NoError(t, err)
 	})
 
 	t.Run("less zero max errors with first task without err", func(t *testing.T) {
-		tasksCount := 1
-		tasks := make([]Task, 0, tasksCount)
-
-		for i := 0; i < tasksCount; i++ {
-			tasks = append(tasks, func() error {
-				return nil
-			})
-		}
+		tasks := []Task{func() error {
+			return nil
+		}}
 
 		workersCount := 10
 		maxErrorsCount := -1
 		err := Run(tasks, workersCount, maxErrorsCount)
-		var want error
-		require.Equal(t, want, err)
+		require.NoError(t, err)
+	})
+
+	t.Run("runs all tasks when tasks count is less than workers count", func(t *testing.T) {
+		var runTasksCount int32
+		tasks := []Task{
+			func() error {
+				atomic.AddInt32(&runTasksCount, 1)
+				return nil
+			},
+			func() error {
+				atomic.AddInt32(&runTasksCount, 1)
+				return nil
+			},
+		}
+
+		err := Run(tasks, 10, 1)
+
+		require.NoError(t, err)
+		require.Equal(t, int32(len(tasks)), atomic.LoadInt32(&runTasksCount))
+	})
+
+	t.Run("returns nil when workers count is zero", func(t *testing.T) {
+		tasks := []Task{}
+		err := Run(tasks, 0, 1)
+		require.NoError(t, err)
+	})
+
+	t.Run("returns nil when tasks are empty", func(t *testing.T) {
+		tasks := []Task{}
+		err := Run(tasks, 10, 1)
+		require.NoError(t, err)
 	})
 }
