@@ -44,14 +44,9 @@ func TestRun(t *testing.T) {
 		tasks := make([]Task, 0, tasksCount)
 
 		var runTasksCount int32
-		var sumTime time.Duration
 
 		for i := 0; i < tasksCount; i++ {
-			taskSleep := time.Millisecond * time.Duration(rand.Intn(100))
-			sumTime += taskSleep
-
 			tasks = append(tasks, func() error {
-				time.Sleep(taskSleep)
 				atomic.AddInt32(&runTasksCount, 1)
 				return nil
 			})
@@ -60,13 +55,44 @@ func TestRun(t *testing.T) {
 		workersCount := 5
 		maxErrorsCount := 1
 
-		start := time.Now()
 		err := Run(tasks, workersCount, maxErrorsCount)
-		elapsedTime := time.Since(start)
 
 		require.NoError(t, err)
 		require.Equal(t, int32(tasksCount), atomic.LoadInt32(&runTasksCount), "not all tasks were completed")
-		require.LessOrEqual(t, int64(elapsedTime), int64(sumTime/2), "tasks were run sequentially?")
+	})
+
+	t.Run("runs tasks concurrently", func(t *testing.T) {
+		workersCount := 5
+
+		var started atomic.Int32
+		release := make(chan struct{})
+
+		tasks := make([]Task, workersCount)
+		for i := range tasks {
+			tasks[i] = func() error {
+				started.Add(1)
+				<-release
+				return nil
+			}
+		}
+
+		done := make(chan error, 1)
+		go func() {
+			done <- Run(tasks, workersCount, 1)
+		}()
+
+		require.Eventually(t, func() bool {
+			return started.Load() == int32(workersCount)
+		}, time.Second, 10*time.Millisecond)
+
+		close(release)
+
+		select {
+		case err := <-done:
+			require.NoError(t, err)
+		case <-time.After(time.Second):
+			t.Fatal("Run did not finish")
+		}
 	})
 }
 
